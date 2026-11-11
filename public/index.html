@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Tank Robot</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@600;900&display=swap');
+
+:root{
+  --bg:#060a0f;
+  --surf:#0d1520;
+  --brd:#1a3040;
+  --brd2:#0f2030;
+  --acc:#00e5ff;
+  --acc2:#00b8cc;
+  --grn:#39ff14;
+  --red:#ff2244;
+  --ylw:#ffcc00;
+  --gry:#4a6070;
+  --txt:#c8e8f0;
+  --danger:#ff4400;
+  --srv1:#ff9f00;
+  --srv2:#b44fff;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{
+  background:var(--bg);
+  color:var(--txt);
+  font-family:'Share Tech Mono',monospace;
+  display:flex;flex-direction:column;align-items:center;
+  padding:14px 12px 30px;gap:12px;min-height:100vh;
+  background-image:
+    radial-gradient(ellipse at 20% 10%, rgba(0,100,140,0.15) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 80%, rgba(0,60,100,0.1) 0%, transparent 60%);
+}
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:999;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.08) 2px,rgba(0,0,0,0.08) 4px);
+}
+
+h1{
+  font-family:'Orbitron',monospace;
+  font-size:1rem;letter-spacing:4px;
+  color:var(--acc);text-transform:uppercase;
+  border-bottom:1px solid var(--brd);
+  width:100%;text-align:center;padding-bottom:10px;
+  text-shadow:0 0 20px rgba(0,229,255,0.5);
+  position:relative;
+}
+h1::after{
+  content:'';position:absolute;bottom:-1px;left:50%;transform:translateX(-50%);
+  width:60px;height:2px;background:var(--acc);
+  box-shadow:0 0 12px var(--acc);
+}
+
+.card{
+  background:var(--surf);
+  border:1px solid var(--brd);
+  border-radius:10px;
+  padding:14px;width:100%;max-width:360px;
+  position:relative;
+  box-shadow:0 4px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(0,229,255,0.05);
+}
+.card::before{
+  content:'';position:absolute;top:0;left:16px;right:16px;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(0,229,255,0.3),transparent);
+}
+.card h3{
+  font-family:'Orbitron',monospace;
+  font-size:.65rem;letter-spacing:3px;color:var(--gry);
+  text-transform:uppercase;margin-bottom:12px;text-align:center;
+}
+
+/* ── MODE ── */
+.mode-row{
+  display:flex;align-items:center;justify-content:space-between;
+  background:#060e18;border:1px solid var(--brd);
+  border-radius:8px;padding:10px 14px;margin-bottom:0;
+}
+.mode-label{font-size:.8rem;color:var(--gry);}
+.mode-val{font-family:'Orbitron',monospace;font-size:.8rem;color:var(--acc);letter-spacing:2px;}
+
+.mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;}
+.mbtn{
+  padding:11px 6px;font-family:'Orbitron',monospace;font-size:.58rem;letter-spacing:1px;
+  text-transform:uppercase;background:#060e18;border:1px solid var(--brd);border-radius:8px;
+  color:var(--gry);cursor:pointer;text-align:center;transition:all .15s;
+}
+.mbtn.active{
+  border-color:var(--acc);color:var(--acc);background:#001a2a;
+  box-shadow:0 0 10px rgba(0,229,255,0.2);
+}
+
+.auto-bar{
+  display:flex;justify-content:space-between;align-items:center;
+  background:#040c14;border:1px solid var(--brd2);
+  border-radius:6px;padding:8px 12px;margin-top:10px;
+  font-size:.75rem;
+}
+.auto-bar .label{color:var(--gry);}
+.auto-bar .val{color:var(--grn);font-family:'Orbitron',monospace;font-size:.7rem;letter-spacing:1px;}
+.auto-bar .dist{color:var(--acc);font-size:.75rem;}
+.auto-bar.danger .val{color:var(--danger);animation:blink .4s step-end infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
+
+.sbar{display:flex;justify-content:space-between;font-size:.75rem;color:var(--gry);margin-bottom:12px;}
+.sbar b{color:var(--acc);}
+
+/* ── SLIDER ROWS ── */
+.slrow{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.slrow label{font-size:.72rem;color:var(--gry);white-space:nowrap;letter-spacing:1px;}
+.slrow span{font-size:.82rem;color:var(--acc);font-weight:bold;min-width:28px;text-align:right;}
+
+input[type=range]{-webkit-appearance:none;flex:1;height:5px;border-radius:3px;outline:none;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;
+  border-radius:50%;box-shadow:0 0 8px currentColor,0 0 2px #fff;}
+
+.sl-tank{
+  background:linear-gradient(to right,var(--acc) 0%,var(--acc) calc(var(--v)*100%/255),
+  var(--brd) calc(var(--v)*100%/255));
+}
+.sl-tank::-webkit-slider-thumb{background:var(--acc);color:var(--acc);}
+
+.sl-grip{
+  background:linear-gradient(to right,var(--srv1) 0%,var(--srv1) calc(var(--v)*100%/180),
+  var(--brd) calc(var(--v)*100%/180));
+}
+.sl-grip::-webkit-slider-thumb{background:var(--srv1);color:var(--srv1);box-shadow:0 0 8px var(--srv1);}
+.slrow .sv-grip{color:var(--srv1);}
+
+.sl-elbow{
+  background:linear-gradient(to right,var(--srv2) 0%,var(--srv2) calc(var(--v)*100%/180),
+  var(--brd) calc(var(--v)*100%/180));
+}
+.sl-elbow::-webkit-slider-thumb{background:var(--srv2);color:var(--srv2);box-shadow:0 0 8px var(--srv2);}
+.slrow .sv-elbow{color:var(--srv2);}
+
+.servo-row{display:flex;align-items:center;gap:14px;margin-bottom:10px;}
+.arc-wrap{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;}
+.arc-label{font-size:.65rem;color:var(--gry);letter-spacing:2px;text-transform:uppercase;}
+.arc-val{font-family:'Orbitron',monospace;font-size:1rem;letter-spacing:2px;}
+.arc-val.grip{color:var(--srv1);}
+.arc-val.elbow{color:var(--srv2);}
+.arc-bar{width:100%;height:4px;border-radius:2px;background:var(--brd);overflow:hidden;margin-top:2px;}
+.arc-fill{height:100%;border-radius:2px;transition:width .15s;}
+.arc-fill.grip{background:var(--srv1);box-shadow:0 0 6px var(--srv1);}
+.arc-fill.elbow{background:var(--srv2);box-shadow:0 0 6px var(--srv2);}
+
+.center-btn{
+  display:block;width:100%;padding:7px 0;margin-top:4px;
+  font-family:'Orbitron',monospace;font-size:.6rem;letter-spacing:3px;text-transform:uppercase;
+  background:#060e18;border:1px solid var(--brd);border-radius:6px;
+  color:var(--gry);cursor:pointer;text-align:center;
+  transition:all .15s;
+}
+.center-btn:active{border-color:var(--acc);color:var(--acc);box-shadow:0 0 10px rgba(0,229,255,0.2);}
+.center-btn.mt{margin-top:10px;}
+.center-btn.warn{border-color:var(--danger);color:var(--danger);}
+
+/* IR sensorlar */
+.ir-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.ir-name{font-size:.65rem;color:var(--gry);letter-spacing:1px;min-width:62px;}
+.ir-bar{flex:1;height:6px;border-radius:3px;background:var(--brd);overflow:hidden;}
+.ir-fill{height:100%;width:0%;border-radius:3px;background:var(--acc);box-shadow:0 0 6px var(--acc);transition:width .2s;}
+.ir-pct{font-family:'Orbitron',monospace;font-size:.78rem;color:var(--acc);min-width:58px;text-align:right;}
+.ir-tag{font-family:'Orbitron',monospace;font-size:.6rem;letter-spacing:2px;padding:4px 0;border-radius:5px;
+  min-width:58px;text-align:center;border:1px solid var(--brd);color:var(--gry);}
+.ir-tag.white{background:#e8f6fa;color:#06222c;border-color:#e8f6fa;}
+.ir-tag.black{background:#000;color:#c8e8f0;border-color:var(--gry);}
+
+/* D-Pad */
+.dpad{display:grid;grid-template-columns:repeat(3,70px);
+  grid-template-rows:repeat(3,70px);gap:7px;margin:0 auto;}
+.btn{
+  display:flex;align-items:center;justify-content:center;border-radius:8px;
+  border:1px solid var(--brd);background:#08111a;color:var(--txt);
+  font-size:1.5rem;cursor:pointer;user-select:none;touch-action:manipulation;
+  transition:all .1s;position:relative;overflow:hidden;
+}
+.btn::after{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(circle at center,rgba(0,229,255,0.15),transparent 70%);
+  opacity:0;transition:opacity .1s;
+}
+.btn:active::after,.btn.on::after{opacity:1;}
+.btn:active,.btn.on{
+  background:#0a2030;border-color:var(--acc);color:var(--acc);
+  transform:scale(.92);box-shadow:0 0 16px rgba(0,229,255,0.25),inset 0 0 10px rgba(0,229,255,0.05);
+}
+.btn.stop{
+  border-color:var(--red);color:var(--red);
+  font-family:'Orbitron',monospace;font-size:.6rem;letter-spacing:2px;font-weight:600;
+}
+.btn.stop:active,.btn.stop.on{
+  background:#1a0008;border-color:var(--red);box-shadow:0 0 16px rgba(255,34,68,0.35);
+}
+.btn.empty{visibility:hidden;pointer-events:none;}
+
+.dpad.disabled .btn{opacity:0.25;pointer-events:none;}
+
+.foot{font-size:.62rem;color:var(--brd);margin-top:2px;letter-spacing:1px;}
+
+/* ── AYARLAR ── */
+.sect{
+  width:100%;max-width:360px;display:flex;justify-content:space-between;align-items:center;
+  font-family:'Orbitron',monospace;font-size:.7rem;letter-spacing:3px;color:var(--acc);
+  border-bottom:1px solid var(--brd);padding-bottom:6px;margin-top:8px;
+}
+.sect span{font-family:'Share Tech Mono',monospace;font-size:.65rem;letter-spacing:1px;color:var(--grn);}
+#settings{width:100%;max-width:360px;display:flex;flex-direction:column;gap:12px;align-items:center;}
+details.card > summary{
+  list-style:none;cursor:pointer;font-family:'Orbitron',monospace;font-size:.65rem;
+  letter-spacing:3px;color:var(--gry);text-transform:uppercase;text-align:center;
+}
+details.card > summary::-webkit-details-marker{display:none;}
+details.card[open] > summary{color:var(--acc);margin-bottom:14px;}
+.srow{margin-bottom:14px;}
+.srow.bool{display:flex;align-items:center;gap:10px;}
+.shead{display:flex;align-items:center;gap:6px;margin-bottom:5px;}
+.slabel{flex:1;font-size:.72rem;color:var(--txt);line-height:1.25;}
+.sdef{font-size:.58rem;color:var(--gry);white-space:nowrap;}
+.rst{
+  background:none;border:1px solid var(--brd);border-radius:5px;color:var(--gry);
+  cursor:pointer;padding:1px 7px;font-size:.85rem;flex:none;
+}
+.rst:active{border-color:var(--acc);color:var(--acc);}
+.sctl{display:flex;align-items:center;gap:10px;}
+.snum{
+  width:78px;background:#060e18;border:1px solid var(--brd);border-radius:5px;color:var(--acc);
+  padding:5px 6px;font-family:inherit;font-size:.8rem;text-align:right;
+}
+.stxt{
+  width:100%;background:#060e18;border:1px solid var(--brd);border-radius:5px;color:var(--acc);
+  padding:8px;font-family:inherit;font-size:.85rem;
+}
+.sl-set{
+  background:linear-gradient(to right,var(--acc) 0%,var(--acc) var(--p,0%),var(--brd) var(--p,0%));
+}
+.sl-set::-webkit-slider-thumb{background:var(--acc);color:var(--acc);}
+.msg{font-size:.68rem;color:var(--gry);margin-top:8px;text-align:center;min-height:1em;}
+
+.toggle-wrap{position:relative;width:46px;height:24px;flex:none;}
+.toggle-wrap input{opacity:0;width:0;height:0;}
+.toggle-slider{
+  position:absolute;inset:0;cursor:pointer;background:#0a1a24;border:1px solid var(--brd);
+  border-radius:24px;transition:background .3s,border-color .3s;
+}
+.toggle-slider::before{
+  content:'';position:absolute;width:16px;height:16px;left:3px;top:3px;border-radius:50%;
+  background:var(--gry);transition:transform .3s,background .3s,box-shadow .3s;
+}
+.toggle-wrap input:checked + .toggle-slider{background:#001a2a;border-color:var(--acc);}
+.toggle-wrap input:checked + .toggle-slider::before{
+  transform:translateX(22px);background:var(--acc);box-shadow:0 0 8px var(--acc);
+}
+.conn{font-size:.7rem;letter-spacing:2px;padding:5px 12px;border-radius:14px;border:1px solid var(--brd);margin-top:-4px;}
+.conn.ok{color:var(--grn);border-color:#1b5a10;box-shadow:0 0 10px rgba(57,255,20,.15);}
+.conn.bad{color:var(--ylw);border-color:#5a4a10;}
+.overlay{position:fixed;inset:0;z-index:1000;background:rgba(6,10,15,.94);display:flex;align-items:center;justify-content:center;padding:16px;}
+.remrow{display:flex;align-items:center;gap:8px;font-size:.72rem;color:var(--gry);margin-bottom:12px;}
+</style>
+</head>
+<body>
+<h1>⬡ TANK ROBOT</h1>
+<div class="conn bad" id="conn">○ SERVERƏ QOŞULUR…</div>
+
+<!-- MOD SEÇİMİ -->
+<div class="card">
+  <h3>Sürüş Modu</h3>
+  <div class="mode-row">
+    <div>
+      <div class="mode-label">Aktiv Mod</div>
+      <div class="mode-val" id="modeLabel">ƏL İDARƏSİ</div>
+    </div>
+  </div>
+  <div class="mode-grid">
+    <button class="mbtn active" id="mb0" onclick="switchMode(0)">Əl idarəsi</button>
+    <button class="mbtn" id="mb1" onclick="switchMode(1)">Maneədən qaçma</button>
+    <button class="mbtn" id="mb2" onclick="switchMode(2)">Line following</button>
+    <button class="mbtn" id="mb3" onclick="switchMode(3)">Arena (kub çıxar)</button>
+  </div>
+  <div class="auto-bar" id="autoBar" style="display:none">
+    <div>
+      <div class="label">VƏZIYYƏT</div>
+      <div class="val" id="autoStat">—</div>
+    </div>
+    <div style="text-align:right">
+      <div class="label">MƏSAFƏ</div>
+      <div class="dist" id="autoDist">— sm</div>
+    </div>
+  </div>
+</div>
+
+<!-- IR SENSORLAR -->
+<div class="card">
+  <h3>IR Sensorlar</h3>
+  <div class="ir-row">
+    <div class="ir-name">S1 · ORTA</div>
+    <div class="ir-bar"><div class="ir-fill" id="ir0Bar"></div></div>
+    <div class="ir-pct" id="ir0Pct">—</div>
+    <div class="ir-tag" id="ir0Tag">—</div>
+  </div>
+  <div class="ir-row">
+    <div class="ir-name">S2 · SOL</div>
+    <div class="ir-bar"><div class="ir-fill" id="ir1Bar"></div></div>
+    <div class="ir-pct" id="ir1Pct">—</div>
+    <div class="ir-tag" id="ir1Tag">—</div>
+  </div>
+  <div class="ir-row" style="margin-bottom:0;">
+    <div class="ir-name">S3 · SAĞ</div>
+    <div class="ir-bar"><div class="ir-fill" id="ir2Bar"></div></div>
+    <div class="ir-pct" id="ir2Pct">—</div>
+    <div class="ir-tag" id="ir2Tag">—</div>
+  </div>
+</div>
+
+<!-- SERVO İDARƏSİ -->
+<div class="card">
+  <h3>Servo İdarəsi</h3>
+
+  <div class="servo-row">
+    <div class="arc-wrap">
+      <div class="arc-label">Gripper</div>
+      <div class="arc-val grip" id="gripVal">90°</div>
+      <div class="arc-bar"><div class="arc-fill grip" id="gripBar" style="width:50%"></div></div>
+    </div>
+    <div style="width:1px;height:40px;background:var(--brd);"></div>
+    <div class="arc-wrap">
+      <div class="arc-label">Elbow</div>
+      <div class="arc-val elbow" id="elbowVal">90°</div>
+      <div class="arc-bar"><div class="arc-fill elbow" id="elbowBar" style="width:50%"></div></div>
+    </div>
+  </div>
+
+  <div class="slrow">
+    <label>GRİPPER:</label>
+    <input type="range" class="sl-grip" id="gripSlider"
+      min="0" max="180" value="90" style="--v:90"
+      oninput="setServo('grip', this.value)">
+    <span class="sv-grip" id="gripSpan">90</span>
+  </div>
+
+  <div class="slrow" style="margin-bottom:8px;">
+    <label>ELBOW:</label>
+    <input type="range" class="sl-elbow" id="elbowSlider"
+      min="0" max="180" value="90" style="--v:90"
+      oninput="setServo('elbow', this.value)">
+    <span class="sv-elbow" id="elbowSpan">90</span>
+  </div>
+
+  <button class="center-btn" onclick="centerServos()">⟲ Mərkəzə Gətir (90°)</button>
+</div>
+
+<!-- TANK DRIVE -->
+<div class="card">
+  <h3>Tank Drive — M1 + M2</h3>
+  <div class="sbar">
+    <div>İSTİQAMƏT: <b id="tdir">STOP</b></div>
+    <div>SÜRƏT: <b id="tspd">180</b></div>
+  </div>
+  <div class="slrow">
+    <label>SÜRƏT:</label>
+    <input type="range" class="sl-tank" id="tsr" min="60" max="255" value="180"
+      style="--v:180" oninput="setTankSpd(this.value)">
+    <span id="tsv">180</span>
+  </div>
+  <div class="dpad" id="dpad">
+    <div class="btn empty"></div>
+    <div class="btn" id="bF"
+      ontouchstart="tp('F',this)" ontouchend="tr(this)"
+      onmousedown="tp('F',this)" onmouseup="tr(this)">▲</div>
+    <div class="btn empty"></div>
+
+    <div class="btn" id="bL"
+      ontouchstart="tp('L',this)" ontouchend="tr(this)"
+      onmousedown="tp('L',this)" onmouseup="tr(this)">◀</div>
+    <div class="btn stop" id="bS"
+      ontouchstart="tp('S',this)" ontouchend="trS(this)"
+      onmousedown="tp('S',this)" onmouseup="trS(this)">STOP</div>
+    <div class="btn" id="bR"
+      ontouchstart="tp('R',this)" ontouchend="tr(this)"
+      onmousedown="tp('R',this)" onmouseup="tr(this)">▶</div>
+
+    <div class="btn empty"></div>
+    <div class="btn" id="bB"
+      ontouchstart="tp('B',this)" ontouchend="tr(this)"
+      onmousedown="tp('B',this)" onmouseup="tr(this)">▼</div>
+    <div class="btn empty"></div>
+  </div>
+</div>
+
+<!-- AYARLAR -->
+<div class="sect">⚙ AYARLAR <span id="svInd"></span></div>
+<div id="settings"></div>
+
+
+<!-- ƏLAVƏ ƏMƏLİYYATLAR -->
+<div class="card">
+  <h3>Əməliyyatlar</h3>
+  <button class="center-btn" onclick="resetGroup('all')">⟲ Bütün ayarları default-a qaytar</button>
+  <button class="center-btn mt" onclick="logout()">Çıxış</button>
+  <div class="msg">Wi-Fi / cloud / zavod sıfırlaması yalnız robota lokal qoşulanda (SoftAP) dəyişdirilə bilər.</div>
+</div>
+
+<div class="foot" id="ipshow">QOŞULUNUR...</div>
+
+<div id="login" class="overlay" style="display:none">
+  <div class="card">
+    <h3>Giriş</h3>
+    <div class="srow">
+      <div class="shead"><span class="slabel">Şifrə</span></div>
+      <input type="password" class="stxt" id="pwIn" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <label class="remrow"><input type="checkbox" id="remPw"> Bu cihazda yadda saxla</label>
+    <button class="center-btn" onclick="doLogin()">Daxil ol</button>
+    <div class="msg" id="loginMsg"></div>
+  </div>
+</div>
+
+<script>
+const CLOUD = true;
+const $ = (id)=>document.getElementById(id);
+let ws=null, wsOpen=false, authed=false, robotOn=false, pw='', nextId=1, retryMs=1000, retryT=null, rtt=null, loginFailed=false;
+const pend = new Map();
+
+function setConn(txt, cls){ const el=$('conn'); el.textContent=txt; el.className='conn '+cls; }
+function refreshConn(){
+  if(!wsOpen)       setConn('○ SERVERƏ QOŞULUR…','bad');
+  else if(!authed)  setConn('○ GİRİŞ GÖZLƏNİLİR','bad');
+  else if(!robotOn) setConn('○ ROBOT OFFLINE','bad');
+  else              setConn('● ROBOT ONLINE'+(rtt!=null?' · '+rtt+' ms':''),'ok');
+}
+function failAll(msg){ pend.forEach(p=>{clearTimeout(p.t); p.rej(new Error(msg));}); pend.clear(); }
+function scheduleRetry(){ clearTimeout(retryT); retryT=setTimeout(connectWs,retryMs); retryMs=Math.min(Math.round(retryMs*1.7),8000); }
+
+function connectWs(){
+  clearTimeout(retryT);
+  const proto = location.protocol==='https:' ? 'wss://' : 'ws://';
+  let sock;
+  try{ sock = new WebSocket(proto+location.host+'/ws/ui'); }catch(e){ scheduleRetry(); return; }
+  ws = sock;
+  sock.onopen = ()=>{ if(ws!==sock) return; wsOpen=true; retryMs=1000; sock.send(JSON.stringify({t:'auth',pw:pw})); refreshConn(); };
+  sock.onmessage = (e)=>{ if(ws!==sock) return; let m; try{ m=JSON.parse(e.data); }catch(_){ return; } onMsg(m); };
+  sock.onclose = ()=>{
+    if(ws!==sock) return;
+    wsOpen=false; authed=false; robotOn=false; rtt=null; failAll('closed'); refreshConn();
+    if(!loginFailed) scheduleRetry();
+  };
+  sock.onerror = ()=>{};
+}
+
+function onMsg(m){
+  if(m.t==='auth'){
+    if(m.ok){
+      authed=true; hideLogin(); refreshConn();
+      try{ if($('remPw').checked) localStorage.setItem('tankPw',pw); else localStorage.removeItem('tankPw'); }catch(_){}
+    } else {
+      loginFailed=true; authed=false;
+      try{ localStorage.removeItem('tankPw'); }catch(_){}
+      showLogin(m.msg||'Şifrə yanlışdır');
+      try{ ws.close(); }catch(_){}
+    }
+  } else if(m.t==='robot'){
+    const was=robotOn; robotOn=!!m.on; refreshConn();
+    if(robotOn && !was) onRobotOnline();
+  } else if(m.t==='res'){
+    const p=pend.get(m.id); if(!p) return;
+    pend.delete(m.id); clearTimeout(p.t);
+    p.res({
+      ok: m.c>=200 && m.c<300, status: m.c,
+      text: ()=>Promise.resolve(typeof m.d==='string' ? m.d : JSON.stringify(m.d)),
+      json: ()=>Promise.resolve(typeof m.d==='string' ? JSON.parse(m.d) : m.d)
+    });
+  }
+}
+
+function api(url){
+  return new Promise((res,rej)=>{
+    if(!ws || ws.readyState!==1 || !authed){ rej(new Error('offline')); return; }
+    const qi=url.indexOf('?'), p=qi<0?url:url.slice(0,qi), q={};
+    if(qi>=0) new URLSearchParams(url.slice(qi+1)).forEach((v,k)=>{ q[k]=v; });
+    const id=nextId++;
+    const t=setTimeout(()=>{ pend.delete(id); rej(new Error('timeout')); },6000);
+    pend.set(id,{res:res,rej:rej,t:t});
+    ws.send(JSON.stringify({t:'req',id:id,p:p,q:q}));
+  });
+}
+
+function showLogin(msg){ $('login').style.display='flex'; $('loginMsg').textContent=msg||''; setTimeout(()=>{ $('pwIn').focus(); },50); }
+function hideLogin(){ $('login').style.display='none'; $('pwIn').value=''; }
+function doLogin(){
+  const v=$('pwIn').value; if(!v) return;
+  pw=v; loginFailed=false; $('loginMsg').textContent='…';
+  const old=ws; ws=null; try{ if(old) old.close(); }catch(_){}
+  wsOpen=false; authed=false; connectWs();
+}
+function logout(){
+  try{ localStorage.removeItem('tankPw'); }catch(_){}
+  stopAll(); loginFailed=true; pw='';
+  const old=ws; try{ if(old) old.close(); }catch(_){}
+  authed=false; showLogin('');
+}
+function ipLine(d){ $('ipshow').textContent='ROBOT Wi-Fi: '+(d.sta||'?')+' · '+d.rssi+' dBm'; }
+function onRobotOnline(){
+  initialStatus();
+  if(Object.keys(BYK).length) api('/settings').then(r=>r.json()).then(refreshValues).catch(()=>{});
+  else loadSettings();
+}
+function bootCloud(){
+  let saved=''; try{ saved=localStorage.getItem('tankPw')||''; }catch(_){}
+  if(saved){ pw=saved; $('remPw').checked=true; connectWs(); } else showLogin('');
+}
+window.addEventListener('unhandledrejection', e=>e.preventDefault());
+
+// Slider kimi tez-tez gələn əmrləri seyrəltmək (hər açar üçün ən çox 100 ms-də bir)
+const THR_T={}, THR_L={};
+function sendThrottled(key,url){
+  const now=Date.now(); clearTimeout(THR_T[key]);
+  if(now-(THR_L[key]||0)>=100){ THR_L[key]=now; api(url).catch(()=>{}); }
+  else THR_T[key]=setTimeout(()=>{ THR_L[key]=Date.now(); api(url).catch(()=>{}); },100);
+}
+
+let tLast='', tActive=null, curMode=0, lastSwitch=0;
+const MODE_NAMES=['ƏL İDARƏSİ','MANEƏDƏN QAÇMA','LINE FOLLOWING','ARENA — KUB ÇIXAR'];
+
+// ── Servo ────────────────────────────────
+function setServo(which, val){
+  val = parseInt(val);
+  const pct = (val/180*100).toFixed(1)+'%';
+  if(which==='grip'){
+    document.getElementById('gripSpan').textContent = val;
+    document.getElementById('gripVal').textContent  = val+'°';
+    document.getElementById('gripBar').style.width  = pct;
+    document.getElementById('gripSlider').style.setProperty('--v', val);
+    sendThrottled('g','/servo?grip='+val);
+  } else {
+    document.getElementById('elbowSpan').textContent = val;
+    document.getElementById('elbowVal').textContent  = val+'°';
+    document.getElementById('elbowBar').style.width  = pct;
+    document.getElementById('elbowSlider').style.setProperty('--v', val);
+    sendThrottled('e','/servo?elbow='+val);
+  }
+}
+
+function centerServos(){
+  setServo('grip',  90);
+  setServo('elbow', 90);
+  document.getElementById('gripSlider').value  = 90;
+  document.getElementById('elbowSlider').value = 90;
+}
+
+// ── Mod dəyişikliyi ──────────────────────
+function applyModeUI(m){
+  curMode = m;
+  document.getElementById('modeLabel').textContent = MODE_NAMES[m];
+  document.getElementById('autoBar').style.display = (m===0) ? 'none' : 'flex';
+  document.getElementById('dpad').classList.toggle('disabled', m!==0);
+  for(let i=0;i<4;i++) document.getElementById('mb'+i).classList.toggle('active', i===m);
+  if(m!==0) document.getElementById('tdir').textContent = 'AUTO';
+}
+function switchMode(m){
+  lastSwitch = Date.now();
+  applyModeUI(m);
+  tLast=''; tActive=null;
+  api('/mode?m='+m).catch(()=>{});
+}
+
+// ── Tank sürəti ──────────────────────────
+function setTankSpd(v){
+  document.getElementById('tsv').textContent = v;
+  document.getElementById('tsr').style.setProperty('--v', v);
+  sendThrottled('s','/tank?spd='+v);
+  if(BYK.tankSpd) reflect('tankSpd', parseInt(v));
+}
+
+// ── D-Pad ────────────────────────────────
+let repT=null;
+function stopRepeat(){ if(repT){ clearInterval(repT); repT=null; } }
+function startRepeat(cmd){
+  stopRepeat();
+  if(!CLOUD || cmd==='S') return;
+  // cloud-da robot ~700 ms əmr gəlməsə özü dayanır (təhlükəsizlik) — düymə basılı olduqca təkrar göndər
+  repT=setInterval(()=>{ api('/tank?dir='+cmd).catch(()=>{}); },150);
+}
+function tp(cmd,el){
+  if(curMode!==0) return;
+  if(tActive&&tActive!==el) tActive.classList.remove('on');
+  el.classList.add('on'); tActive=el;
+  if(cmd===tLast) return; tLast=cmd;
+  startRepeat(cmd);
+  api('/tank?dir='+cmd).then(r=>r.text())
+    .then(t=>document.getElementById('tdir').textContent=t).catch(()=>{});
+}
+function tr(el){
+  if(curMode!==0) return;
+  stopRepeat();
+  el.classList.remove('on'); tActive=null; tLast='';
+  api('/tank?dir=S').then(r=>r.text())
+    .then(t=>document.getElementById('tdir').textContent=t).catch(()=>{});
+}
+function trS(el){ stopRepeat(); el.classList.remove('on'); tActive=null; tLast=''; }
+// Düymədən kənarda buraxma, tab dəyişmə, toxunuş ləğvi və s. halda robotu dayandır
+function stopAll(){
+  stopRepeat();
+  if(tActive){ tActive.classList.remove('on'); tActive=null; }
+  if(tLast!==''){ tLast=''; api('/tank?dir=S').catch(()=>{}); }
+}
+window.addEventListener('mouseup',()=>stopAll());
+window.addEventListener('touchend',()=>stopAll());
+window.addEventListener('touchcancel',()=>stopAll());
+window.addEventListener('blur',()=>stopAll());
+document.addEventListener('visibilitychange',()=>{ if(document.hidden) stopAll(); });
+
+// Klaviatura
+const km={ArrowUp:'F',ArrowDown:'B',ArrowLeft:'L',ArrowRight:'R',' ':'S'};
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT') return;
+  if(curMode!==0||!km[e.key]) return; e.preventDefault();
+  tp(km[e.key],document.getElementById('b'+km[e.key]));
+});
+document.addEventListener('keyup',e=>{
+  if(e.target.tagName==='INPUT') return;
+  if(curMode!==0||!km[e.key]||km[e.key]==='S') return;
+  tr(document.getElementById('b'+km[e.key]));
+});
+
+// ── AYARLAR ──────────────────────────────
+let BYK={}, TMR={};
+
+function esc(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+}
+function fmt(s,v){
+  return s.t==='f' ? String(parseFloat(Number(v).toFixed(2))) : String(Math.round(v));
+}
+
+function rowHTML(s){
+  const id='st_'+s.k;
+  if(s.t==='b'){
+    return `<div class="srow bool"><div class="slabel">${esc(s.l)}</div>
+      <label class="toggle-wrap"><input type="checkbox" id="${id}_c" onchange="setSet('${s.k}',this.checked?1:0)"><span class="toggle-slider"></span></label>
+      <button class="rst" title="Default" onclick="resetOne('${s.k}')">↺</button></div>`;
+  }
+  return `<div class="srow">
+    <div class="shead"><span class="slabel">${esc(s.l)}</span><span class="sdef">def ${fmt(s,s.d)}</span>
+      <button class="rst" title="Default" onclick="resetOne('${s.k}')">↺</button></div>
+    <div class="sctl">
+      <input type="range" class="sl-set" id="${id}_r" min="${s.mn}" max="${s.mx}" step="${s.st}" oninput="onRange('${s.k}',this.value)">
+      <input type="number" class="snum" id="${id}_n" min="${s.mn}" max="${s.mx}" step="${s.st}" onchange="onNum('${s.k}',this.value)">
+    </div></div>`;
+}
+
+function buildSettings(d){
+  BYK={};
+  d.s.forEach(s=>{BYK[s.k]=s;});
+  let h='';
+  d.g.forEach(g=>{
+    h += `<details class="card"><summary>${esc(g.t)}</summary>`;
+    d.s.filter(s=>s.g===g.i).forEach(s=>{h += rowHTML(s);});
+    h += `<button class="center-btn" onclick="resetGroup('${g.i}')">⟲ Bu qrupu default-a qaytar</button></details>`;
+  });
+  document.getElementById('settings').innerHTML = h;
+  d.s.forEach(s=>reflect(s.k, s.v));
+}
+
+function refreshValues(d){
+  d.s.forEach(s=>reflect(s.k, s.v));
+}
+
+// Dəyəri bütün idarə elementlərində göstər
+function reflect(k, v){
+  const s = BYK[k];
+  if(!s) return;
+  s.v = v;
+  const id='st_'+k;
+  const c=document.getElementById(id+'_c');
+  const r=document.getElementById(id+'_r');
+  const n=document.getElementById(id+'_n');
+  if(c) c.checked = v>=0.5;
+  if(r){
+    r.value = v;
+    r.style.setProperty('--p', ((v-s.mn)/(s.mx-s.mn)*100).toFixed(1)+'%');
+  }
+  if(n) n.value = v;
+  if(k==='tankSpd'){
+    document.getElementById('tsr').value = v;
+    document.getElementById('tsr').style.setProperty('--v', v);
+    document.getElementById('tsv').textContent = v;
+    document.getElementById('tspd').textContent = v;
+  }
+  if(k==='grpLo'||k==='grpHi'||k==='elbLo'||k==='elbHi') applyServoLimits();
+}
+
+function applyServoLimits(){
+  if(!BYK.grpLo || !BYK.elbLo) return;
+  let a=BYK.grpLo.v, b=BYK.grpHi.v; if(a>b){const t=a;a=b;b=t;}
+  const g=document.getElementById('gripSlider'); g.min=a; g.max=b;
+  a=BYK.elbLo.v; b=BYK.elbHi.v; if(a>b){const t=a;a=b;b=t;}
+  const e=document.getElementById('elbowSlider'); e.min=a; e.max=b;
+}
+
+function setSet(k,v){
+  api('/set?k='+k+'&v='+encodeURIComponent(v)).then(r=>r.text()).then(t=>{
+    const nv=parseFloat(t);
+    if(!isNaN(nv)) reflect(k,nv);
+    document.getElementById('svInd').textContent='… saxlanılır';
+  }).catch(()=>{});
+}
+function onRange(k,val){
+  const v=parseFloat(val);
+  const n=document.getElementById('st_'+k+'_n'); if(n) n.value=v;
+  const s=BYK[k], r=document.getElementById('st_'+k+'_r');
+  if(s&&r) r.style.setProperty('--p', ((v-s.mn)/(s.mx-s.mn)*100).toFixed(1)+'%');
+  clearTimeout(TMR[k]);
+  TMR[k]=setTimeout(()=>setSet(k,v),200);
+}
+function onNum(k,val){
+  const v=parseFloat(val);
+  if(isNaN(v)) return;
+  setSet(k,v);
+}
+function resetOne(k){ if(BYK[k]) setSet(k, BYK[k].d); }
+function resetGroup(g){
+  if(!confirm(g==='all' ? 'Bütün ayarlar default-a qaytarılsın?' : 'Bu qrupun ayarları default-a qaytarılsın?')) return;
+  api('/reset?g='+g).then(()=>api('/settings')).then(r=>r.json()).then(refreshValues).catch(()=>{});
+}
+
+let lsBusy=false;
+function loadSettings(){
+  if(lsBusy) return; lsBusy=true;
+  api('/settings').then(r=>r.json()).then(d=>{ buildSettings(d); lsBusy=false; })
+    .catch(()=>{ lsBusy=false; setTimeout(loadSettings,1500); });
+}
+
+
+// ── Status poll ──────────────────────────
+let pollBusy=false;
+setInterval(()=>{
+  if(pollBusy) return; pollBusy=true;
+  const t0=performance.now();
+  api('/status').then(r=>r.json()).then(d=>{
+    rtt=Math.round(performance.now()-t0); refreshConn(); ipLine(d);
+    if(d.mode!==undefined && d.mode!==curMode && Date.now()-lastSwitch>1500) applyModeUI(d.mode);
+
+    document.getElementById('tspd').textContent = d.tankSpd;
+    document.getElementById('tsr').value = d.tankSpd;
+    document.getElementById('tsr').style.setProperty('--v', d.tankSpd);
+    document.getElementById('tsv').textContent = d.tankSpd;
+
+    document.getElementById('svInd').textContent = (d.sv===1) ? '✓ saxlanıldı' : '… saxlanılır';
+
+    if(curMode===0){
+      document.getElementById('tdir').textContent = d.tankDir;
+    } else {
+      document.getElementById('tdir').textContent = d.status||'AUTO';
+      document.getElementById('autoStat').textContent = d.status||'—';
+      document.getElementById('autoDist').textContent = (d.dist>=0 && d.dist<900) ? (d.dist+' sm') : '—';
+      document.getElementById('autoBar').classList.toggle('danger', curMode===1 && d.dist>=0 && d.dist<25);
+    }
+
+    // IR sensorlar
+    if(d.ir && d.blk){
+      for(let i=0;i<3;i++){
+        const p = d.ir[i];
+        document.getElementById('ir'+i+'Pct').textContent = p.toFixed(1)+'%';
+        document.getElementById('ir'+i+'Bar').style.width = p+'%';
+        const t = document.getElementById('ir'+i+'Tag');
+        t.textContent = d.blk[i] ? 'QARA' : 'AĞ';
+        t.className = 'ir-tag ' + (d.blk[i] ? 'black' : 'white');
+      }
+    }
+
+    // Servo sync
+    if(d.gripAngle !== undefined){
+      document.getElementById('gripSlider').value = d.gripAngle;
+      document.getElementById('gripSpan').textContent = d.gripAngle;
+      document.getElementById('gripVal').textContent  = d.gripAngle+'°';
+      document.getElementById('gripBar').style.width  = (d.gripAngle/180*100).toFixed(1)+'%';
+      document.getElementById('gripSlider').style.setProperty('--v', d.gripAngle);
+    }
+    if(d.elbowAngle !== undefined){
+      document.getElementById('elbowSlider').value = d.elbowAngle;
+      document.getElementById('elbowSpan').textContent = d.elbowAngle;
+      document.getElementById('elbowVal').textContent  = d.elbowAngle+'°';
+      document.getElementById('elbowBar').style.width  = (d.elbowAngle/180*100).toFixed(1)+'%';
+      document.getElementById('elbowSlider').style.setProperty('--v', d.elbowAngle);
+    }
+  }).catch(()=>{}).then(()=>{ pollBusy=false; });
+}, 600);
+
+function initialStatus(){
+  api('/status').then(r=>r.json()).then(d=>{
+    if(d.mode!==undefined) applyModeUI(d.mode);
+  }).catch(()=>{});
+}
+
+bootCloud();
+</script>
+</body>
+</html>
